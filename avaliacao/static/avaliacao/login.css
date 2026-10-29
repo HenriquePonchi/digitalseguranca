@@ -1,0 +1,47 @@
+/* Tela de autenticação */
+@layer pages{
+.auth{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(380px,.9fr)}
+.auth__brand{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:var(--sp-7);
+  padding:clamp(var(--sp-5),4vw,var(--sp-8));border-right:1px solid var(--line);
+  background:
+   radial-gradient(70% 55% at 12% 8%,rgba(59,130,246,.30),transparent 62%),
+   radial-gradient(60% 50% at 95% 100%,rgba(139,92,246,.26),transparent 60%),
+   linear-gradient(160deg,#0B1226 0%,#080B12 70%)}
+.auth__brand::before{content:"";position:absolute;inset:0;background:url("rede.svg") center/cover no-repeat;opacity:.9;
+  -webkit-mask-image:linear-gradient(115deg,transparent 4%,#000 40%,#000 70%,transparent 100%);mask-image:linear-gradient(115deg,transparent 4%,#000 40%,#000 70%,transparent 100%)}
+.auth__brand::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,11,18,.0) 40%,rgba(8,11,18,.78));pointer-events:none}
+.auth__brand>*{position:relative;z-index:1}
+.auth__logo{display:flex;align-items:center;gap:var(--sp-3);text-decoration:none;color:var(--text)}
+.auth__logo .brand-name b{font-size:1.45rem}
+.auth__hero{max-width:34rem}
+.auth__hero h2{font-size:var(--fs-display);font-weight:800;letter-spacing:-.035em;line-height:1.04}
+.auth__hero p{margin-top:var(--sp-4);color:#B6C2D6;font-size:var(--fs-md);max-width:44ch}
+.auth__fatos{list-style:none;display:grid;gap:var(--sp-3);margin-top:var(--sp-6)}
+.auth__fatos li{display:flex;align-items:center;gap:var(--sp-3);color:var(--text);font-weight:600;font-size:var(--fs-sm)}
+.auth__fatos .ico{width:34px;height:34px;padding:8px;border-radius:10px;color:var(--cyan);background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.22)}
+.auth__rodape{display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;color:var(--text-2);font-size:var(--fs-xs)}
+
+.auth__panel{display:grid;place-items:center;padding:clamp(var(--sp-4),4vw,var(--sp-7));background:var(--bg)}
+.auth__card{width:min(420px,100%);padding:clamp(var(--sp-5),3vw,2.25rem);border-radius:var(--r-xl);background:var(--grad-card),var(--surface);
+  border:1px solid var(--line-strong);box-shadow:var(--sh-3),0 0 0 1px rgba(255,255,255,.02);position:relative}
+.auth__card::before{content:"";position:absolute;left:var(--sp-5);right:var(--sp-5);top:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),transparent);opacity:.7}
+.auth__card h1{font-size:var(--fs-xl);letter-spacing:-.03em}
+.auth__card .lead{color:var(--text-2);margin:var(--sp-2) 0 var(--sp-5)}
+.auth__form{display:flex;flex-direction:column;gap:var(--sp-4)}
+.auth__ajuda{margin-top:var(--sp-5);padding-top:var(--sp-4);border-top:1px solid var(--line);font-size:var(--fs-sm);color:var(--text-2);display:flex;gap:var(--sp-3);align-items:flex-start}
+.auth__ajuda .ico{width:18px;height:18px;margin-top:2px;color:var(--text-3)}
+.auth__mobile-logo{display:none}
+@media (prefers-reduced-motion:no-preference){
+ .auth__card{animation:modal-in .5s var(--ease) both}
+ .auth__hero{animation:page-in .6s var(--ease) both}
+}
+@media (max-width:960px){
+ .auth{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
+ .auth__brand{padding:var(--sp-5);gap:var(--sp-4);border-right:0;border-bottom:1px solid var(--line)}
+ .auth__hero p,.auth__fatos,.auth__rodape{display:none}
+ .auth__hero h2{font-size:var(--fs-lg);letter-spacing:-.02em}
+ .auth__panel{align-items:start;padding-top:var(--sp-5)}
+}
+}
+
+@layer pages{.auth__erro{margin-bottom:var(--sp-4)}.auth__enviar{margin-top:var(--sp-2)}}

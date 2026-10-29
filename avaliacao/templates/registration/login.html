@@ -1,0 +1,56 @@
+{% extends 'avaliacao/base_auth.html' %}
+
+{% block content %}
+<div class="auth">
+    <section class="auth__brand" aria-label="Sobre a plataforma">
+        <a class="auth__logo" href="{% url 'login' %}" aria-label="TCC·FH">
+            <span class="brand-mark"><svg class="ico" aria-hidden="true"><use href="#i-logo"/></svg></span>
+            <span class="brand-name"><b>TCC<i>·</i>FH</b><small>Maturidade em segurança digital</small></span>
+        </a>
+        <div class="auth__hero">
+            <h2>Meça a maturidade da segurança digital com método.</h2>
+            <p>Avalie controles por função NIST, acompanhe lacunas da LGPD e priorize o que reduz mais risco para os dados dos alunos.</p>
+            <ul class="auth__fatos">
+                <li><svg class="ico" aria-hidden="true"><use href="#i-gauge"/></svg>Escala de maturidade de 1 a 4 por controle</li>
+                <li><svg class="ico" aria-hidden="true"><use href="#i-layers"/></svg>Seis funções NIST: GV, ID, PR, DE, RS e RC</li>
+                <li><svg class="ico" aria-hidden="true"><use href="#i-shield-alert"/></svg>Indicadores de risco (RSDM) e lacunas LGPD</li>
+            </ul>
+        </div>
+        <p class="auth__rodape"><span class="badge badge--beta"><svg class="ico" aria-hidden="true"><use href="#i-flask"/></svg>Beta experimental</span>Pesos e RSDM aguardam validação acadêmica.</p>
+    </section>
+
+    <section class="auth__panel">
+        <div class="auth__card">
+            <h1>Entrar</h1>
+            <p class="lead">Use o usuário e a senha fornecidos pela sua instituição.</p>
+
+            {% if form.non_field_errors %}
+            <div class="aviso aviso--error auth__erro" role="alert">
+                <svg class="ico" aria-hidden="true"><use href="#i-alert-circle"/></svg>
+                <p class="aviso__txt">{% for erro in form.non_field_errors %}{{ erro }}{% if not forloop.last %} {% endif %}{% endfor %}</p>
+            </div>
+            {% endif %}
+
+            <form method="post" class="auth__form">
+                {% csrf_token %}
+                <div class="campo{% if form.username.errors %} campo--erro{% endif %}">
+                    <label class="campo__label" for="{{ form.username.id_for_label }}">Usuário<span class="campo__req" aria-hidden="true">*</span></label>
+                    {{ form.username }}
+                    {% for erro in form.username.errors %}<p class="campo__erro"><svg class="ico" aria-hidden="true"><use href="#i-alert-circle"/></svg>{{ erro }}</p>{% endfor %}
+                </div>
+                <div class="campo campo--senha{% if form.password.errors %} campo--erro{% endif %}">
+                    <label class="campo__label" for="{{ form.password.id_for_label }}">Senha<span class="campo__req" aria-hidden="true">*</span></label>
+                    {{ form.password }}
+                    <button type="button" class="campo__olho" data-toggle-senha hidden aria-controls="{{ form.password.id_for_label }}" aria-pressed="false" aria-label="Mostrar senha">
+                        <svg class="ico ico-on" aria-hidden="true"><use href="#i-eye"/></svg><svg class="ico ico-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+                    </button>
+                    {% for erro in form.password.errors %}<p class="campo__erro"><svg class="ico" aria-hidden="true"><use href="#i-alert-circle"/></svg>{{ erro }}</p>{% endfor %}
+                </div>
+                <button type="submit" class="btn btn--primary btn--block auth__enviar">Entrar</button>
+            </form>
+
+            <p class="auth__ajuda"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg><span>Esqueceu a senha? Peça a redefinição ao administrador do sistema.</span></p>
+        </div>
+    </section>
+</div>
+{% endblock %}

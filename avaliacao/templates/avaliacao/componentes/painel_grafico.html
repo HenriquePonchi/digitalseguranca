@@ -1,0 +1,26 @@
+{# Painel com gráfico Chart.js + tabela acessível. Parâmetros: g (dict do gráfico), idx (posição em graficos_dashboard), icone #}
+<section class="card card--pad painel painel--grafico">
+    <div class="card__head"><h2 class="card__title"><svg class="ico" aria-hidden="true"><use href="#{{ icone|default:'i-chart' }}"/></svg>{{ g.titulo }}</h2></div>
+    <div class="chart-container{% if g.percentual %} chart-container--curto{% endif %}">
+        <canvas id="dashboard-grafico-{{ idx }}" role="img" aria-label="{{ g.titulo }}. Valores disponíveis na tabela seguinte.">Consulte os valores na tabela abaixo.</canvas>
+        <div class="chart-empty" hidden>
+            <span class="vazio__ico"><svg class="ico" aria-hidden="true"><use href="#i-chart"/></svg></span>
+            <p>Sem dados aplicáveis</p>
+        </div>
+    </div>
+    <p class="chart-nota">
+        {% if g.percentual %}Percentuais de 0 a 100. No RSDM, quanto maior, maior o risco. Nas lacunas LGPD, quanto maior, maior a parcela dos controles associados à LGPD abaixo do nível 3.
+        {% elif g.contagem %}Quantidade de controles de governança aplicáveis em cada nível de maturidade.
+        {% elif g.tipo == 'radar' %}Escala de 1 a 4. Cada eixo é uma função NIST.
+        {% else %}Escala de 1 a 4. As linhas tracejadas marcam os limites de classe do score geral (1,75 · 2,50 · 3,25).{% endif %}
+    </p>
+    <details class="valores">
+        <summary>Ver valores em tabela</summary>
+        <div class="tabela-wrap"><table class="tabela">
+            <caption class="visually-hidden">Valores de {{ g.titulo }}</caption>
+            <thead><tr><th scope="col">Indicador</th><th scope="col" class="col-num">Valor</th></tr></thead>
+            <tbody>{% for linha in g.linhas %}<tr><th scope="row">{{ linha.indicador }}</th><td class="col-num">{% if linha.valor == None %}Sem dados aplicáveis{% elif g.contagem %}{{ linha.valor }}{% else %}{{ linha.valor|floatformat:2 }}{% if g.percentual %}%{% endif %}{% endif %}</td></tr>{% endfor %}</tbody>
+        </table></div>
+    </details>
+    <noscript><p class="chart-nota">Os gráficos precisam de JavaScript. Todos os indicadores estão na tabela e no resultado completo abaixo.</p></noscript>
+</section>

@@ -1,0 +1,126 @@
+{% load static ui %}<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#080B12">
+    <title>{% block title %}TCC·FH · Avaliação de maturidade{% endblock %}</title>
+    <script src="{% static 'avaliacao/shell-init.js' %}"></script>
+    <link rel="preload" href="{% static 'avaliacao/fonts/manrope-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link href="{% static 'avaliacao/tema.css' %}" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+{% include 'avaliacao/componentes/icones.html' %}
+<a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+{% with rota=request.resolver_match.url_name %}
+<div class="app" id="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menu lateral">
+        <a class="sidebar__brand" href="{% url 'inicio' %}" aria-label="TCC·FH — início">
+            <span class="brand-mark"><svg class="ico" aria-hidden="true"><use href="#i-logo"/></svg></span>
+            <span class="brand-name"><b>TCC<i>·</i>FH</b><small>Maturidade em segurança digital</small></span>
+        </a>
+        <nav class="sidebar__nav" aria-label="Navegação principal">
+            <div class="nav-group">
+                <span class="nav-title">Plataforma</span>
+                <a class="nav-link" href="{% url 'inicio' %}" title="Avaliações"{% if rota == 'inicio' %} aria-current="page"{% endif %}>
+                    <svg class="ico" aria-hidden="true"><use href="#i-layers"/></svg><span>Avaliações</span></a>
+                <a class="nav-link" href="{% url 'nova_instituicao' %}" title="Cadastrar instituição"{% if rota == 'nova_instituicao' %} aria-current="page"{% endif %}>
+                    <svg class="ico" aria-hidden="true"><use href="#i-building"/></svg><span>Cadastrar instituição</span></a>
+            </div>
+            {% if avaliacao.pk %}
+            <div class="nav-group">
+                {% if avaliacao.finalizada_em %}
+                <span class="nav-title">Avaliação #{{ avaliacao.pk }}</span>
+                <a class="nav-link" href="{% url 'resultado' avaliacao.pk %}#dashboard-topo" title="Dashboard"{% if rota == 'resultado' %} aria-current="page"{% endif %}>
+                    <svg class="ico" aria-hidden="true"><use href="#i-gauge"/></svg><span>Dashboard</span></a>
+                <a class="nav-link" href="{% url 'resultado' avaliacao.pk %}#resultado-completo" title="Resultado completo">
+                    <svg class="ico" aria-hidden="true"><use href="#i-file"/></svg><span>Resultado completo</span></a>
+                {% else %}
+                {% progresso avaliacao as nav_prog %}
+                <span class="nav-title">Avaliação #{{ avaliacao.pk }} · etapas</span>
+                {% for e in nav_prog.etapas %}
+                <a class="nav-link" href="{% url 'questionario' avaliacao.pk e.codigo %}" title="{{ e.codigo }} · {{ e.nome }}"{% if funcao == e.codigo %} aria-current="step"{% endif %}>
+                    <span class="nav-code">{{ e.codigo }}</span><span>{{ e.nome }}</span>
+                    {% if e.completa %}<svg class="ico nav-check" aria-label="Etapa completa" role="img"><use href="#i-check-circle"/></svg>{% else %}<span class="nav-meta">{{ e.feitos }}/{{ e.total }}</span>{% endif %}
+                </a>
+                {% endfor %}
+                {% endif %}
+            </div>
+            {% endif %}
+        </nav>
+        <div class="sidebar__foot">
+            <p class="sidebar__note">Modelo v0.1 experimental: pesos e RSDM aguardam validação acadêmica.</p>
+            <button class="sb-toggle" type="button" id="sb-toggle" aria-pressed="false" aria-label="Recolher menu lateral">
+                <svg class="ico" aria-hidden="true"><use href="#i-chevrons-left"/></svg><span>Recolher menu</span></button>
+        </div>
+    </aside>
+    <div class="scrim" id="scrim" data-sb-close></div>
+
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn--ghost btn--icon topbar__menu" type="button" id="sb-open" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menu">
+                <svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg></button>
+            <nav class="crumbs" aria-label="Você está em">
+                <ol>
+                    {% block breadcrumb %}<li><span aria-current="page">Avaliações</span></li>{% endblock %}
+                </ol>
+            </nav>
+            <div class="topbar__right">
+                <span class="badge badge--beta" title="Modelo experimental v0.1: pesos e RSDM aguardam validação acadêmica."><svg class="ico" aria-hidden="true"><use href="#i-flask"/></svg>Beta experimental</span>
+                {% if user.is_authenticated %}
+                <details class="user-menu" id="user-menu">
+                    <summary aria-label="Menu da conta de {{ user.username }}">
+                        <span class="avatar" aria-hidden="true">{{ user.username|first }}</span>
+                        <span class="user-menu__nome">{{ user.get_full_name|default:user.username }}</span>
+                        <svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                    </summary>
+                    <div class="user-menu__panel">
+                        <div class="user-menu__who"><b>{{ user.get_full_name|default:user.username }}</b><span>{{ user.username }}</span></div>
+                        {% if user.is_staff %}<a class="menu-item" href="{% url 'admin:index' %}"><svg class="ico" aria-hidden="true"><use href="#i-sliders"/></svg>Administração</a>{% endif %}
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button class="menu-item menu-item--danger" type="submit"><svg class="ico" aria-hidden="true"><use href="#i-logout"/></svg>Sair</button>
+                        </form>
+                    </div>
+                </details>
+                {% endif %}
+            </div>
+        </header>
+
+        <main class="content" id="conteudo" tabindex="-1">
+            {% if messages %}
+            <div class="avisos" aria-live="polite">
+                {% for message in messages %}
+                <div class="aviso aviso--{{ message.level_tag|default:'info' }}" role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}">
+                    <svg class="ico" aria-hidden="true"><use href="#{% if message.level_tag == 'success' %}i-check-circle{% elif message.level_tag == 'error' %}i-alert-circle{% elif message.level_tag == 'warning' %}i-alert{% else %}i-info{% endif %}"/></svg>
+                    <p class="aviso__txt">{{ message }}</p>
+                    <button type="button" class="aviso__fechar" data-fechar-aviso aria-label="Dispensar aviso"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endwith %}
+
+<dialog class="modal" id="dlg-confirmar" aria-labelledby="dlg-titulo" aria-describedby="dlg-texto">
+    <form method="dialog">
+        <div class="modal__body">
+            <span class="modal__ico"><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg></span>
+            <div><h2 id="dlg-titulo">Confirmar ação</h2><p id="dlg-texto"></p></div>
+        </div>
+        <div class="modal__foot">
+            <button class="btn btn--secondary" value="cancelar" id="dlg-cancelar">Cancelar</button>
+            <button class="btn btn--primary" value="confirmar" id="dlg-ok">Confirmar</button>
+        </div>
+    </form>
+</dialog>
+
+<script src="{% static 'avaliacao/app.js' %}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

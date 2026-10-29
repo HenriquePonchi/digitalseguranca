@@ -1,0 +1,109 @@
+{% extends 'avaliacao/base.html' %}
+{% load static ui %}
+{% block extra_head %}<link href="{% static 'avaliacao/inicio.css' %}" rel="stylesheet">{% endblock %}
+
+{% block content %}
+{% resumo_avaliacoes avaliacoes as resumo %}
+<header class="page-head">
+    <div>
+        <p class="saudacao"><span data-saudacao>Olá</span>, {{ user.get_full_name|default:user.username }}</p>
+        <h1>Instituições e avaliações</h1>
+        <p>{% if matriz %}Matriz disponível: <strong class="tnum">{{ matriz }}</strong>{% else %}Nenhuma matriz de controles importada.{% endif %}</p>
+    </div>
+    <div class="page-head__actions">
+        <a href="{% url 'nova_instituicao' %}" class="btn btn--primary"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Cadastrar instituição</a>
+    </div>
+</header>
+
+{% if not matriz %}
+<div class="aviso aviso--warning" role="status"><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg>
+    <p class="aviso__txt">Importe uma matriz antes de iniciar a avaliação.</p></div>
+{% endif %}
+
+<section class="stats" aria-label="Resumo">
+    <div class="card stat"><span class="stat__ico"><svg class="ico" aria-hidden="true"><use href="#i-building"/></svg></span>
+        <div><b class="stat__num tnum">{{ instituicoes|length }}</b><span class="stat__rot">Instituições</span></div></div>
+    <div class="card stat"><span class="stat__ico stat__ico--warn"><svg class="ico" aria-hidden="true"><use href="#i-clipboard"/></svg></span>
+        <div><b class="stat__num tnum">{{ resumo.andamento }}</b><span class="stat__rot">Em andamento</span></div></div>
+    <div class="card stat"><span class="stat__ico stat__ico--ok"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg></span>
+        <div><b class="stat__num tnum">{{ resumo.finalizadas }}</b><span class="stat__rot">Finalizadas</span></div></div>
+</section>
+
+<section aria-labelledby="h-inst">
+    <div class="card__head"><h2 class="card__title" id="h-inst">Instituições</h2></div>
+    {% if instituicoes %}
+    <div class="inst-grid">
+        {% for inst in instituicoes %}
+        <article class="card card--pad card--interactive inst">
+            <span class="stat__ico"><svg class="ico" aria-hidden="true"><use href="#i-building"/></svg></span>
+            <div class="inst__nome"><h3>{{ inst.nome }}</h3><span class="muted tnum">{{ inst.avaliacoes.count }} avaliaç{{ inst.avaliacoes.count|pluralize:"ão,ões" }}</span></div>
+            <form method="post" action="{% url 'nova_avaliacao' inst.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--secondary btn--sm"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nova avaliação</button>
+            </form>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card"><div class="vazio">
+        <span class="vazio__ico"><svg class="ico" aria-hidden="true"><use href="#i-building"/></svg></span>
+        <h3>Nenhuma instituição cadastrada</h3>
+        <p>Cadastre a primeira instituição para iniciar uma avaliação de maturidade.</p>
+        <a href="{% url 'nova_instituicao' %}" class="btn btn--primary">Cadastrar agora</a>
+    </div></div>
+    {% endif %}
+</section>
+
+<section aria-labelledby="h-aval">
+    <div class="card__head"><h2 class="card__title" id="h-aval">Avaliações</h2></div>
+    {% if avaliacoes %}
+    <ul class="av-list">
+        {% for avaliacao in avaliacoes %}
+        <li class="card av-item">
+            <div class="av-item__info">
+                <strong>{{ avaliacao.instituicao.nome }} · #{{ avaliacao.pk }}</strong>
+                <span class="muted tnum">Matriz {{ avaliacao.matriz }} · {{ avaliacao.criada_em|date:"d/m/Y, H:i" }}</span>
+            </div>
+            <div class="av-item__estado">
+                {% if avaliacao.finalizada_em %}
+                <span class="badge badge--ok"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Finalizada</span>
+                <span class="muted tnum">em {{ avaliacao.finalizada_em|date:"d/m/Y" }}</span>
+                {% else %}
+                {% progresso avaliacao as prog %}
+                <span class="badge badge--warn"><svg class="ico" aria-hidden="true"><use href="#i-clipboard"/></svg>Em andamento</span>
+                <div class="av-item__prog" role="group" aria-label="Progresso do questionário">
+                    <div class="progress" style="--p:{{ prog.percentual }}"><i></i></div>
+                    <span class="muted tnum">{{ prog.feitos }} de {{ prog.total }} controles</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="av-item__acoes">
+                {% if avaliacao.finalizada_em %}
+                <a href="{% url 'resultado' avaliacao.pk %}" class="btn btn--secondary btn--sm">Ver resultado<svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+                {% else %}
+                <a href="{% url 'questionario' avaliacao.pk 'GV' %}" class="btn btn--primary btn--sm">Retomar questionário<svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+                {% endif %}
+                <form method="post" action="{% url 'excluir_avaliacao' avaliacao.pk %}"
+                      data-confirm="A avaliação #{{ avaliacao.pk }} de {{ avaliacao.instituicao.nome }} e suas respostas serão excluídas. Esta ação não pode ser desfeita."
+                      data-confirm-titulo="Excluir esta avaliação?" data-confirm-ok="Excluir avaliação" data-confirm-tom="perigo">
+                    {% csrf_token %}
+                    {% if avaliacao.finalizada_em %}
+                    <button type="button" class="btn btn--danger btn--sm" disabled title="Avaliações finalizadas são imutáveis e não podem ser excluídas.">
+                        <svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>Excluir</button>
+                    {% else %}
+                    <button type="submit" class="btn btn--danger btn--sm"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>Excluir</button>
+                    {% endif %}
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="card"><div class="vazio">
+        <span class="vazio__ico"><svg class="ico" aria-hidden="true"><use href="#i-clipboard"/></svg></span>
+        <h3>Nenhuma avaliação iniciada</h3>
+        <p>Clique em "Nova avaliação" em uma instituição para começar.</p>
+    </div></div>
+    {% endif %}
+</section>
+{% endblock %}

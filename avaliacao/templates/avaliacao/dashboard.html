@@ -1,0 +1,168 @@
+{% load ui %}
+<section class="dashboard" id="dashboard-topo" aria-labelledby="dashboard-titulo">
+
+    {# ───────── Cabeçalho + medidor ───────── #}
+    <header class="hero reveal" style="--i:0">
+        <div class="hero__texto">
+            <p class="hero__saud"><span data-saudacao>Olá</span>, {{ user.get_full_name|default:user.username }}</p>
+            <h1 id="dashboard-titulo">Dashboard {{ perfil_dashboard }}</h1>
+            <p class="hero__lead">{{ subtitulo_dashboard }}</p>
+            <dl class="hero__meta">
+                <div><dt>Instituição</dt><dd>{{ avaliacao.instituicao }}</dd></div>
+                <div><dt>Avaliação</dt><dd class="tnum">#{{ avaliacao.pk }} · finalizada em {{ avaliacao.finalizada_em|date:"d/m/Y" }}</dd></div>
+                <div><dt>Matriz</dt><dd class="tnum">{{ dados.matriz_versao }}</dd></div>
+                <div><dt>Metodologia</dt><dd>{{ dados.metodologia_versao }}</dd></div>
+            </dl>
+            <a class="btn btn--secondary" href="#resultado-completo"><svg class="ico" aria-hidden="true"><use href="#i-file"/></svg>Ver resultado completo</a>
+        </div>
+        <div class="hero__gauge">
+            {% if perfil_dashboard == 'Operacional' %}
+                {% include 'avaliacao/componentes/gauge.html' with valor=dados.prontidao_resposta rotulo='Prontidão de resposta (DE + RS)' %}
+            {% elif perfil_dashboard == 'Conselheiro' %}
+                {% for f in funcoes_dashboard %}{% if f.codigo == 'GV' %}{% include 'avaliacao/componentes/gauge.html' with valor=f.score rotulo='Governar (GV)' %}{% endif %}{% endfor %}
+            {% else %}
+                {% include 'avaliacao/componentes/gauge.html' with valor=dados.score_geral rotulo='Score geral' classe=dados.classe %}
+            {% endif %}
+        </div>
+    </header>
+
+    {# ───────── Indicadores ───────── #}
+    <div class="kpis">
+        {% if perfil_dashboard == 'Operacional' %}
+            {% for f in funcoes_dashboard %}{% if f.codigo == 'DE' or f.codigo == 'RS' %}
+            <article class="card kpi reveal" style="--i:{{ forloop.counter }}">
+                <div class="kpi__topo"><span class="kpi__ico"><svg class="ico" aria-hidden="true"><use href="#{% if f.codigo == 'DE' %}i-activity{% else %}i-shield-alert{% endif %}"/></svg></span><h2 class="kpi__tit">{{ f.nome }}</h2></div>
+                <p class="kpi__valor tnum">{% if f.score %}{{ f.score|floatformat:2 }}{% else %}<span class="kpi__vazio">Sem dados aplicáveis</span>{% endif %}</p>
+                {% if f.score %}<div class="escala4" style="--p:{{ f.score|pct:'0,4' }}"><i></i></div>{% endif %}
+                <p class="kpi__txt">{{ f.codigo }} · escala 1 a 4.</p>
+            </article>
+            {% endif %}{% endfor %}
+        {% elif perfil_dashboard == 'Conselheiro' %}
+            <article class="card kpi reveal" style="--i:1">
+                <div class="kpi__topo"><span class="kpi__ico"><svg class="ico" aria-hidden="true"><use href="#i-gauge"/></svg></span><h2 class="kpi__tit">Score geral</h2></div>
+                <p class="kpi__valor tnum">{% if dados.score_geral %}{{ dados.score_geral|floatformat:2 }}{% else %}<span class="kpi__vazio">Sem dados aplicáveis</span>{% endif %}</p>
+                {% if dados.score_geral %}<div class="escala4" style="--p:{{ dados.score_geral|pct:'0,4' }}"><i></i></div>{% endif %}
+                <p class="kpi__txt">{{ dados.classe }} · escala 1 a 4.</p>
+            </article>
+            <article class="card kpi reveal" style="--i:2">
+                <div class="kpi__topo"><span class="kpi__ico"><svg class="ico" aria-hidden="true"><use href="#i-scale"/></svg></span><h2 class="kpi__tit">Controles GV aplicáveis</h2></div>
+                <p class="kpi__valor tnum">{{ governanca_dashboard|length }}</p>
+                <p class="kpi__txt">Base das recomendações estratégicas.</p>
+            </article>
+        {% else %}
+            <article class="card kpi reveal" style="--i:1">
+                <div class="kpi__topo"><span class="kpi__ico kpi__ico--{{ dados.rsdm.classe|tom_risco }}"><svg class="ico" aria-hidden="true"><use href="#i-shield-alert"/></svg></span>
+                    <h2 class="kpi__tit">Risco para dados de menores
+                        <button type="button" class="dica" aria-label="Sobre o RSDM"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span class="dica__txt" role="tooltip">RSDM: risco calculado a partir dos controles que protegem dados de menores. Quanto maior o valor, maior o risco.</span></button></h2></div>
+                <p class="kpi__valor tnum">{% if dados.rsdm.valor %}{{ dados.rsdm.valor|floatformat:2 }}<small>/100</small>{% else %}<span class="kpi__vazio">Sem dados aplicáveis</span>{% endif %}</p>
+                {% if dados.rsdm.valor %}
+                <div class="risco" style="--p:{{ dados.rsdm.valor|pct:'0,100' }}"><span class="risco__faixa"><i></i><i></i><i></i><i></i></span><span class="risco__marca"></span></div>
+                <div class="risco__rot" aria-hidden="true"><span>Baixo</span><span>Moderado</span><span>Alto</span><span>Crítico</span></div>
+                {% endif %}
+                <p class="kpi__txt"><span class="badge badge--{{ dados.rsdm.classe|tom_risco }}">{% if dados.rsdm.classe == 'Alto' or dados.rsdm.classe == 'Crítico' %}<svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg>{% endif %}{{ dados.rsdm.classe }}</span> RSDM · quanto maior, maior o risco.</p>
+            </article>
+            <article class="card kpi reveal" style="--i:2">
+                <div class="kpi__topo"><span class="kpi__ico kpi__ico--violet"><svg class="ico" aria-hidden="true"><use href="#i-scale"/></svg></span>
+                    <h2 class="kpi__tit">Lacunas LGPD
+                        <button type="button" class="dica" aria-label="Sobre as lacunas LGPD"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span class="dica__txt" role="tooltip">Parcela do peso dos controles associados à LGPD que está abaixo do nível 3. Não é um índice de conformidade legal.</span></button></h2></div>
+                <p class="kpi__valor tnum">{% if dados.gap_lgpd %}{{ dados.gap_lgpd|floatformat:2 }}<small>%</small>{% else %}<span class="kpi__vazio">Sem dados aplicáveis</span>{% endif %}</p>
+                {% if dados.gap_lgpd %}<div class="progress progress--violet" style="--p:{{ dados.gap_lgpd|pct:'0,100' }}"><i></i></div>{% endif %}
+                <p class="kpi__txt">Controles associados à LGPD abaixo do nível 3; não é índice de conformidade legal.</p>
+            </article>
+            <article class="card kpi reveal" style="--i:3">
+                <div class="kpi__topo"><span class="kpi__ico"><svg class="ico" aria-hidden="true"><use href="#i-activity"/></svg></span><h2 class="kpi__tit">Prontidão de resposta</h2></div>
+                <p class="kpi__valor tnum">{% if dados.prontidao_resposta %}{{ dados.prontidao_resposta|floatformat:2 }}{% else %}<span class="kpi__vazio">Sem dados aplicáveis</span>{% endif %}</p>
+                {% if dados.prontidao_resposta %}<div class="escala4" style="--p:{{ dados.prontidao_resposta|pct:'0,4' }}"><i></i></div>{% endif %}
+                <p class="kpi__txt">Média ponderada de DE + RS · escala 1 a 4.</p>
+            </article>
+        {% endif %}
+        <article class="card kpi reveal" style="--i:4">
+            <div class="kpi__topo"><span class="kpi__ico kpi__ico--ok"><svg class="ico" aria-hidden="true"><use href="#i-clipboard"/></svg></span><h2 class="kpi__tit">Avaliação concluída</h2></div>
+            <p class="kpi__valor tnum">{{ aplicaveis_dashboard|add:na_dashboard }}<small>controles</small></p>
+            <div class="cobertura" role="img" aria-label="{{ aplicaveis_dashboard }} aplicáveis e {{ na_dashboard }} não aplicáveis">
+                <span class="cobertura__a" style="flex:{{ aplicaveis_dashboard }}"></span>{% if na_dashboard %}<span class="cobertura__n" style="flex:{{ na_dashboard }}"></span>{% endif %}
+            </div>
+            <p class="kpi__txt tnum">{{ aplicaveis_dashboard }} aplicáveis · {{ na_dashboard }} não aplicáveis</p>
+        </article>
+    </div>
+
+    {% if dados.rsdm.motivo and perfil_dashboard == 'Gestor' %}
+    <div class="aviso aviso--warning" role="status"><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg><p class="aviso__txt">{{ dados.rsdm.motivo }}</p></div>
+    {% endif %}
+
+    {# ───────── Gráficos e funções ───────── #}
+    <div class="dash-grid">
+        {% if graficos_dashboard %}
+        <div class="dash-grid__a reveal" style="--i:5">{% include 'avaliacao/componentes/painel_grafico.html' with g=graficos_dashboard.0 idx=0 icone='i-chart' %}</div>
+        {% endif %}
+
+        {% if perfil_dashboard != 'Conselheiro' %}
+        <section class="card card--pad painel dash-grid__b reveal" style="--i:6" aria-labelledby="h-funcoes">
+            <div class="card__head"><h2 class="card__title" id="h-funcoes"><svg class="ico" aria-hidden="true"><use href="#i-layers"/></svg>{% if perfil_dashboard == 'Operacional' %}Detectar e Responder{% else %}Comparação entre funções{% endif %}</h2></div>
+            <ul class="funcoes">
+                {% for f in funcoes_dashboard %}{% if perfil_dashboard != 'Operacional' or f.codigo == 'DE' or f.codigo == 'RS' %}
+                <li class="funcao">
+                    <span class="funcao__cod">{{ f.codigo }}</span>
+                    <div class="funcao__corpo">
+                        <div class="funcao__linha"><span class="funcao__nome">{{ f.nome }}</span><span class="funcao__val tnum">{% if f.score %}{{ f.score|floatformat:2 }}{% else %}Sem dados aplicáveis{% endif %}</span></div>
+                        {% if f.score %}<div class="escala4" style="--p:{{ f.score|pct:'0,4' }}"><i></i></div>{% endif %}
+                    </div>
+                </li>
+                {% endif %}{% endfor %}
+            </ul>
+            <p class="chart-nota">Escala de 1 a 4. Cada bloco da barra corresponde a um nível de maturidade.</p>
+        </section>
+        {% else %}
+        <section class="card card--pad painel dash-grid__b reveal" style="--i:6" aria-labelledby="h-gov">
+            <div class="card__head"><h2 class="card__title" id="h-gov"><svg class="ico" aria-hidden="true"><use href="#i-scale"/></svg>Distribuição por nível</h2></div>
+            <ul class="distribuicao">
+                {% for d in distribuicao_dashboard %}
+                <li><span class="degraus" data-n="{{ d.nivel }}" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="distribuicao__nome">Nível {{ d.nivel }}</span><b class="tnum">{{ d.total }}</b><span class="muted">controle{{ d.total|pluralize }}</span></li>
+                {% endfor %}
+            </ul>
+            <p class="chart-nota">O alinhamento estratégico é discutido a partir dos controles Governar. A distribuição mostra quantidades de controles, não um novo score nem Tiers NIST.</p>
+        </section>
+        {% endif %}
+
+        {% if graficos_dashboard|length > 1 %}
+        <div class="dash-grid__c reveal" style="--i:7">{% include 'avaliacao/componentes/painel_grafico.html' with g=graficos_dashboard.1 idx=1 icone='i-shield-alert' %}</div>
+        {% endif %}
+
+        {% if perfil_dashboard == 'Técnico' %}
+        <section class="card card--pad painel dash-grid__full reveal" style="--i:8" aria-labelledby="h-lacunas">
+            <div class="card__head"><h2 class="card__title" id="h-lacunas"><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg>Controles com lacunas · nível inferior a 3</h2>
+                <span class="badge badge--warn tnum">{{ falhas_dashboard|length }} controle{{ falhas_dashboard|length|pluralize }}</span></div>
+            <div class="tabela-wrap"><table class="tabela">
+                <thead><tr><th scope="col">Controle</th><th scope="col">Função</th><th scope="col">Nível</th><th scope="col" class="col-num">Peso</th></tr></thead>
+                <tbody>{% for r in falhas_dashboard %}<tr>
+                    <td><a href="#controle-{{ r.codigo }}"><span class="cod">{{ r.codigo }}</span>{{ r.controle }}</a></td>
+                    <td>{{ r.funcao }}</td>
+                    <td><span class="nivel"><span class="degraus" data-n="{{ r.nivel }}" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Nível {{ r.nivel }}</span></td>
+                    <td class="col-num">{{ r.peso|floatformat:2 }}</td></tr>
+                {% empty %}<tr><td colspan="4"><div class="vazio vazio--compacto"><span class="vazio__ico"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg></span><p>Nenhum controle aplicável abaixo do nível 3.</p></div></td></tr>{% endfor %}</tbody>
+            </table></div>
+        </section>
+        {% endif %}
+
+        <section class="card card--pad painel dash-grid__{% if graficos_dashboard|length > 1 %}d{% else %}full{% endif %} reveal" style="--i:9" id="prioridades" aria-labelledby="h-prio">
+            <div class="card__head">
+                <h2 class="card__title" id="h-prio"><svg class="ico" aria-hidden="true"><use href="#i-target"/></svg>{% if perfil_dashboard == 'Operacional' %}Ações sugeridas · Detectar e Responder{% elif perfil_dashboard == 'Conselheiro' %}Prioridades de governança{% elif perfil_dashboard == 'Gestor' %}Cinco prioridades para decisão{% else %}Prioridades técnicas{% endif %}</h2>
+                <span class="badge tnum">{{ recomendacoes_dashboard|length }} ação{{ recomendacoes_dashboard|length|pluralize:",ões" }}</span>
+            </div>
+            <p class="card__sub prio__nota">Ordenação experimental: (4 − nível) × peso. Cada ação leva ao controle e à resposta que a originaram.</p>
+            <ol class="prioridades{% if perfil_dashboard == 'Técnico' %} prioridades--rolavel{% endif %}">
+                {% for r in recomendacoes_dashboard %}
+                <li>
+                    <span class="prio__rank tnum" aria-hidden="true">{{ forloop.counter }}</span>
+                    <div class="prio__corpo">
+                        <div class="prio__topo"><a class="prio__cod" href="#controle-{{ r.codigo }}">{{ r.codigo }}</a><span class="badge badge--warn tnum">Prioridade {{ r.prioridade|floatformat:2 }}</span></div>
+                        <p>{{ r.recomendacao }}</p>
+                    </div>
+                </li>
+                {% empty %}
+                <li class="prio__vazio"><div class="vazio vazio--compacto"><span class="vazio__ico"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg></span><p>Sem recomendações para controles aplicáveis nesta visão.</p></div></li>
+                {% endfor %}
+            </ol>
+        </section>
+    </div>
+</section>

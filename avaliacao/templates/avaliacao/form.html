@@ -1,0 +1,32 @@
+{% extends 'avaliacao/base.html' %}
+{% load static %}
+{% block title %}{{ titulo }} · TCC·FH{% endblock %}
+{% block extra_head %}<link href="{% static 'avaliacao/inicio.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li><a href="{% url 'inicio' %}">Avaliações</a></li><li><span aria-current="page">{{ titulo }}</span></li>{% endblock %}
+
+{% block content %}
+<section class="form-pagina">
+    <div class="card card--pad form-card">
+        <header class="form-card__head">
+            <span class="vazio__ico"><svg class="ico" aria-hidden="true"><use href="#i-building"/></svg></span>
+            <div>
+                <h1>{{ titulo }}</h1>
+                <p class="muted">O nome identifica a instituição nas avaliações e nos resultados.</p>
+            </div>
+        </header>
+        <form method="post" class="stack" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="aviso aviso--error" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-alert-circle"/></svg>
+                <p class="aviso__txt">{% for erro in form.non_field_errors %}{{ erro }} {% endfor %}</p></div>
+            {% endif %}
+            {% for field in form.visible_fields %}{% include 'avaliacao/componentes/campo.html' %}{% endfor %}
+            {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+            <div class="cluster form-card__acoes">
+                <button class="btn btn--primary" type="submit">Salvar</button>
+                <a class="btn btn--ghost" href="{% url 'inicio' %}">Voltar</a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

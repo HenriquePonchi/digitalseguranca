@@ -1,0 +1,65 @@
+{% extends 'avaliacao/base.html' %}
+{% load static ui %}
+{% block title %}Resultado · {{ avaliacao.instituicao }} · TCC·FH{% endblock %}
+{% block extra_head %}<link href="{% static 'avaliacao/dashboard.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li><a href="{% url 'inicio' %}">Avaliações</a></li><li><span>{{ avaliacao.instituicao }}</span></li><li><span aria-current="page">Resultado #{{ avaliacao.pk }}</span></li>{% endblock %}
+
+{% block content %}
+{% include "avaliacao/dashboard.html" %}
+
+<section id="resultado-completo" class="resultado-completo" aria-labelledby="titulo-resultado">
+    <header>
+        <h2 class="titulo" id="titulo-resultado">Resultado · {{ avaliacao.instituicao }}</h2>
+        <p class="meta tnum">Avaliação #{{ avaliacao.pk }} · matriz {{ dados.matriz_versao }} · metodologia {{ dados.metodologia_versao }}</p>
+    </header>
+
+    <div class="resumo">
+        <div class="card resumo__item"><h3>Score geral</h3><strong class="tnum">{% if dados.score_geral %}{{ dados.score_geral|floatformat:2 }}{% else %}Sem dados aplicáveis{% endif %}</strong><small>{{ dados.classe }}</small></div>
+        <div class="card resumo__item"><h3>RSDM</h3><strong class="tnum">{% if dados.rsdm.valor %}{{ dados.rsdm.valor|floatformat:2 }}{% else %}Sem dados aplicáveis{% endif %}</strong><small>{{ dados.rsdm.classe }}</small>{% if dados.rsdm.motivo %}<p>{{ dados.rsdm.motivo }}</p>{% endif %}</div>
+        <div class="card resumo__item"><h3>Lacunas nos controles associados à LGPD</h3><strong class="tnum">{% if dados.gap_lgpd != None %}{{ dados.gap_lgpd|floatformat:2 }}%{% else %}Sem dados aplicáveis{% endif %}</strong><small>Limiar experimental: nível inferior a 3.</small></div>
+    </div>
+
+    <div class="grid">
+        <section class="card card--pad rc-scores" aria-labelledby="h-scores">
+            <h3 class="sec-titulo" id="h-scores">Scores por função NIST</h3>
+            <div class="tabela-wrap"><table class="tabela tabela--compacta">
+                <thead><tr><th scope="col">Função</th><th scope="col" class="col-num">Score</th></tr></thead>
+                <tbody>{% for funcao,score in dados.scores_funcao.items %}<tr><th scope="row">{{ funcao }}</th><td class="col-num">{% if score %}{{ score|floatformat:2 }}{% else %}Sem dados aplicáveis{% endif %}</td></tr>{% endfor %}</tbody>
+            </table></div>
+            <p class="chart-nota tnum">Prontidão de resposta (DE + RS): {% if dados.prontidao_resposta %}{{ dados.prontidao_resposta|floatformat:2 }}{% else %}Sem dados aplicáveis{% endif %}</p>
+        </section>
+        <section class="card card--pad rc-recs" aria-labelledby="h-recs">
+            <h3 class="sec-titulo" id="h-recs">Recomendações priorizadas</h3>
+            <ol class="lista-recs">
+                {% for item in dados.recomendacoes %}<li><a href="#controle-{{ item.codigo }}">{{ item.codigo }}</a><span class="badge badge--warn tnum">Prioridade {{ item.prioridade|floatformat:2 }}</span><span class="rec__txt">{{ item.recomendacao }}</span></li>
+                {% empty %}<li><span class="rec__txt">Sem recomendações para controles aplicáveis.</span></li>{% endfor %}
+            </ol>
+        </section>
+    </div>
+
+    <section class="card card--pad" id="rastreabilidade" aria-labelledby="h-rastro">
+        <h3 class="sec-titulo" id="h-rastro">Rastreabilidade</h3>
+        <p class="rastro-nota tnum">Score geral = {{ dados.numerador }} / {{ dados.denominador }} (antes do arredondamento). Peso e contribuição excluem controles não aplicáveis.</p>
+        <div class="tabela-wrap"><table class="tabela tabela--rastro">
+            <thead><tr><th scope="col">Controle</th><th scope="col">Resposta / ID</th><th scope="col">Nível</th><th scope="col" class="col-num">Peso</th><th scope="col" class="col-num">Contribuição</th><th scope="col">Observação</th></tr></thead>
+            <tbody>
+            {% for item in dados.respostas %}<tr id="controle-{{ item.codigo }}">
+                <td><span class="cod">{{ item.codigo }}</span><span class="muted">{{ item.codigo_csf }}</span><span class="sub">{{ item.controle }}</span></td>
+                <td class="tnum">{{ item.resposta_id }}</td>
+                <td>{% if item.nao_se_aplica %}<span class="badge">Não se aplica</span>{% else %}<span class="nivel"><span class="degraus" data-n="{{ item.nivel }}" aria-hidden="true"><i></i><i></i><i></i><i></i></span>{{ item.nivel }}</span>{% endif %}</td>
+                <td class="col-num">{{ item.peso }}</td>
+                <td class="col-num">{{ item.contribuicao|default_if_none:'Excluído' }}</td>
+                <td>{{ item.justificativa }}</td></tr>{% endfor %}
+            </tbody>
+        </table></div>
+    </section>
+
+    <div><a href="{% url 'inicio' %}" class="btn btn--secondary"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Voltar às avaliações</a></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ graficos_dashboard|json_script:"dashboard-dados" }}
+<script src="{% static 'avaliacao/chart.umd.min.js' %}" defer></script>
+<script src="{% static 'avaliacao/dashboard.js' %}" defer></script>
+{% endblock %}

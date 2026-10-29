@@ -1,0 +1,144 @@
+{% extends 'avaliacao/base.html' %}
+{% load static ui %}
+{% block title %}Questionário {{ funcao }} · {{ avaliacao.instituicao }} · TCC·FH{% endblock %}
+{% block extra_head %}<link href="{% static 'avaliacao/questionario.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li><a href="{% url 'inicio' %}">Avaliações</a></li><li><span>{{ avaliacao.instituicao }}</span></li><li><span aria-current="page">Questionário · {{ funcao }}</span></li>{% endblock %}
+
+{% block content %}
+{% progresso avaliacao as prog %}
+
+{% for e in prog.etapas %}{% if e.codigo == funcao %}
+<header class="card q-head">
+    <div class="q-head__id">
+        <span class="q-head__cod" aria-hidden="true">{{ e.codigo }}</span>
+        <div>
+            <h1>{{ e.nome }}</h1>
+            <p class="muted tnum">Etapa {{ forloop.counter }} de {{ prog.etapas|length }} · {{ avaliacao.instituicao.nome }} · Avaliação #{{ avaliacao.pk }}</p>
+        </div>
+    </div>
+    <div class="q-head__prog" role="group" aria-label="Progresso geral">
+        <div class="q-head__linha"><strong class="tnum">{{ respondidos }} / {{ total }} controles respondidos</strong><span class="muted tnum">{{ prog.percentual|floatformat:0 }}%</span></div>
+        <div class="progress progress--ok" style="--p:{{ prog.percentual }}"><i></i></div>
+        <span class="muted">Matriz {{ avaliacao.matriz }}</span>
+    </div>
+</header>
+{% endif %}{% endfor %}
+
+<nav class="steps" aria-label="Etapas do questionário">
+    <ol>
+        {% for e in prog.etapas %}
+        <li>
+            <a class="step{% if e.codigo == funcao %} is-atual{% endif %}{% if e.completa %} is-completa{% endif %}" href="{% url 'questionario' avaliacao.pk e.codigo %}"{% if e.codigo == funcao %} aria-current="step"{% endif %}>
+                <span class="step__cod">{% if e.completa %}<svg class="ico" aria-hidden="true"><use href="#i-check"/></svg><span class="sr-only">{{ e.codigo }} completa</span>{% else %}{{ e.codigo }}{% endif %}</span>
+                <span class="step__txt"><b>{{ e.codigo }} · {{ e.nome }}</b><small class="tnum">{{ e.feitos }}/{{ e.total }} respondidos</small></span>
+                <span class="progress" style="--p:{{ e.percentual }}"><i></i></span>
+            </a>
+        </li>
+        {% endfor %}
+    </ol>
+</nav>
+
+<div class="aviso aviso--info" role="note">
+    <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>
+    <p class="aviso__txt">Selecione o maior nível cujos critérios são atendidos. Campos vazios ficam pendentes. Salve antes de trocar de função.</p>
+</div>
+
+<form method="post" class="q-form" id="form-questionario" data-total="{{ form.controles|length }}">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="aviso aviso--error" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-alert-circle"/></svg>
+        <p class="aviso__txt">{% for erro in form.non_field_errors %}{{ erro }} {% endfor %}</p></div>
+    {% endif %}
+
+    {% for controle in form.controles %}
+    {% with campo=form|campo:controle.codigo nome_j=controle.codigo|add:'_justificativa' %}
+    {% with just=form|campo:nome_j valor=campo.value|default_if_none:'' %}
+    <fieldset class="card controle{% if valor %} is-answered{% endif %}{% if valor == 'NA' %} is-na{% endif %}{% if just.errors %} tem-erro{% endif %}" id="controle-{{ controle.codigo }}" data-controle>
+        <legend class="sr-only">{{ campo.label }}</legend>
+        <div class="controle__topo">
+            <span class="controle__cod">{{ controle.codigo }}</span>
+            <div class="controle__titulos">
+                <h2 class="controle__nome">{{ controle.controle }}</h2>
+                <p class="controle__meta"><span class="tnum">{{ controle.codigo_csf }}</span>{% if controle.mandatorio %}<span class="badge badge--violet">Mandatório</span>{% endif %}</p>
+            </div>
+            <span class="controle__estado" data-estado>
+                <svg class="ico" aria-hidden="true"><use href="#i-check-circle"/></svg><span data-estado-txt>{% if valor %}Respondido{% else %}Pendente{% endif %}</span>
+            </span>
+        </div>
+        <p class="controle__pergunta">{{ controle.pergunta }}</p>
+
+        <div class="escala">
+            {% for n in controle|niveis %}
+            <label class="opcao" data-n="{{ n.valor }}" for="{{ campo.auto_id }}_{{ n.valor }}">
+                <input class="opcao__input" type="radio" name="{{ campo.html_name }}" id="{{ campo.auto_id }}_{{ n.valor }}" value="{{ n.valor }}"{% if valor == n.valor %} checked{% endif %}>
+                <span class="opcao__card">
+                    <span class="opcao__topo">
+                        <span class="degraus" data-n="{{ n.valor }}" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                        <b>{{ n.valor }} · {{ n.nome }}</b>
+                        <svg class="ico opcao__check" aria-hidden="true"><use href="#i-check-circle"/></svg>
+                    </span>
+                    <span class="opcao__txt">{{ n.criterio }}</span>
+                </span>
+            </label>
+            {% endfor %}
+        </div>
+        <div class="escala__extra">
+            <label class="pilula" for="{{ campo.auto_id }}_pendente">
+                <input class="opcao__input" type="radio" name="{{ campo.html_name }}" id="{{ campo.auto_id }}_pendente" value=""{% if not valor %} checked{% endif %}>
+                <span class="pilula__card">Ainda não respondido</span>
+            </label>
+            <label class="pilula pilula--na" for="{{ campo.auto_id }}_NA">
+                <input class="opcao__input" type="radio" name="{{ campo.html_name }}" id="{{ campo.auto_id }}_NA" value="NA"{% if valor == 'NA' %} checked{% endif %}>
+                <span class="pilula__card">Não se aplica (justifique abaixo)</span>
+            </label>
+        </div>
+
+        <div class="evidencia">
+            <svg class="ico" aria-hidden="true"><use href="#i-file"/></svg>
+            <div><b>Evidência sugerida</b><p>{{ controle.evidencia_sugerida }}</p></div>
+        </div>
+        <details class="detalhes">
+            <summary>Contexto e base legal</summary>
+            <dl><div><dt>Contexto</dt><dd>{{ controle.contexto }}</dd></div><div><dt>Base legal</dt><dd>{{ controle.base_legal }}</dd></div></dl>
+        </details>
+
+        <div class="campo justificativa{% if just.errors %} campo--erro{% endif %}">
+            <label class="campo__label" for="{{ just.id_for_label }}">{{ just.label }}</label>
+            {{ just }}
+            <div class="justificativa__rodape">
+                <span class="campo__ajuda justificativa__obrig">Obrigatória quando o controle não se aplica.</span>
+                <span class="campo__ajuda tnum" data-contador data-max="2000">0/2000</span>
+            </div>
+            {% for erro in just.errors %}<p class="campo__erro" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-alert-circle"/></svg>{{ erro }}</p>{% endfor %}
+        </div>
+        {% for erro in campo.errors %}<p class="campo__erro" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-alert-circle"/></svg>{{ erro }}</p>{% endfor %}
+    </fieldset>
+    {% endwith %}{% endwith %}
+    {% endfor %}
+
+    <div class="q-acoes" role="region" aria-label="Salvar etapa">
+        <div class="q-acoes__estado">
+            <span class="q-acoes__prog tnum" data-etapa-resp>—</span>
+            <span class="q-acoes__sujo" data-sujo hidden role="status"><i aria-hidden="true"></i>Alterações não salvas</span>
+        </div>
+        <button type="submit" class="btn btn--primary">Salvar e continuar<svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+    </div>
+</form>
+
+<section class="card card--pad q-final" aria-labelledby="h-final">
+    <span class="stat__ico stat__ico--ok"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg></span>
+    <div class="q-final__txt">
+        <h2 id="h-final">Finalizar avaliação</h2>
+        <p class="muted">Ao finalizar, o resultado é calculado e as respostas passam a ser imutáveis. Todos os controles precisam estar respondidos.</p>
+        {% if prog.faltam %}<p class="q-final__falta"><span class="badge badge--warn tnum">Faltam {{ prog.faltam }} controle{{ prog.faltam|pluralize }}</span></p>{% endif %}
+    </div>
+    <form method="post" action="{% url 'finalizar' avaliacao.pk %}" id="form-finalizar"
+          data-confirm="O resultado será calculado e as respostas ficarão imutáveis. Confirme que todas as etapas foram salvas."
+          data-confirm-titulo="Finalizar esta avaliação?" data-confirm-ok="Finalizar avaliação" data-confirm-tom="ok">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--ok">Finalizar Avaliação</button>
+    </form>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'avaliacao/questionario.js' %}" defer></script>{% endblock %}
